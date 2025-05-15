@@ -18,7 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import androidx.savedstate.SavedState
+import com.kinglloy.multiplatform.ActivityCloser
 import com.kinglloy.multiplatform.ui.camera.Camera
 import com.kinglloy.multiplatform.ui.home.chatlist.ChatListNavHost
 import com.kinglloy.multiplatform.ui.home.settings.SettingsNavHost
@@ -36,10 +36,10 @@ val initialRouteForTab = mapOf<Route, Route>(
 )
 
 @Composable
-fun Main() {
+fun Main(activityCloser: ActivityCloser?) {
     val modifier = Modifier.fillMaxSize()
     SocialTheme {
-        MainNavigation(modifier)
+        MainNavigation(modifier, activityCloser)
     }
 }
 
@@ -48,6 +48,7 @@ fun Main() {
 fun MainTabsScreen(
     rootNavController: NavHostController,
     modifier: Modifier,
+    activityCloser: ActivityCloser?
 ) {
     val timelineNavController = rememberNavController()
     val chatListNavController = rememberNavController()
@@ -68,7 +69,9 @@ fun MainTabsScreen(
         } else if (currentRoute != mainTabRoute) {
             currentRoute = mainTabRoute
         } else {
-            rootNavController.popBackStack()
+            if (!rootNavController.popBackStack()) {
+                activityCloser?.requestClose()
+            }
         }
     }
 
@@ -106,7 +109,8 @@ fun MainTabsScreen(
 
 @Composable
 fun MainNavigation(
-    modifier: Modifier
+    modifier: Modifier,
+    activityCloser: ActivityCloser?
 ) {
     val rootNavController = rememberNavController()
 
@@ -115,7 +119,11 @@ fun MainNavigation(
         startDestination = Route.Home
     ) {
         composable<Route.Home> {
-            MainTabsScreen(rootNavController = rootNavController, modifier = modifier)
+            MainTabsScreen(
+                rootNavController = rootNavController,
+                modifier = modifier,
+                activityCloser
+            )
         }
         composable<Route.Camera> { backStackEntry ->
             val route: Route.Camera = backStackEntry.toRoute()

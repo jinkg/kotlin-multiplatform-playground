@@ -5,3 +5,8 @@ interface Platform {
 }
 
 expect fun getPlatform(): Platform
+
+interface ActivityCloser {
+    fun requestClose()
+}
+

@@ -6,6 +6,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun App() {
-    Main()
+fun App(activityCloser: ActivityCloser?=null) {
+    Main(activityCloser)
 }
