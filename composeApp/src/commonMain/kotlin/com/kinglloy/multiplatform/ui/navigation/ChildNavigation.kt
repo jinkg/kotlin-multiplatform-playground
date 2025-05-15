@@ -41,6 +41,16 @@ inline fun <reified T : Route> ChildNavigation(
         },
     ) {
         composable<T>(
+            enterTransition = {
+                if (this.initialState.destination != this.targetState.destination) {
+                    slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(400)
+                    )
+                } else {
+                    EnterTransition.None
+                }
+            },
             exitTransition = {
                 slideOutOfContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,
@@ -56,7 +66,7 @@ inline fun <reified T : Route> ChildNavigation(
             startDestinationContent(it)
         }
 
-        childPageComposable<Route.Profile> { backStackEntry ->
+        childPageComposable<Route.Profile>(startDestination) { backStackEntry ->
             val route: Route.Profile = backStackEntry.toRoute()
             val userId = route.userId
             Profile(
@@ -67,7 +77,7 @@ inline fun <reified T : Route> ChildNavigation(
                 modifier = Modifier.fillMaxSize(),
             )
         }
-        childPageComposable<Route.PostDetail> { backStackEntry ->
+        childPageComposable<Route.PostDetail>(startDestination) { backStackEntry ->
             val route: Route.PostDetail = backStackEntry.toRoute()
             val postId = route.postId
             PostDetail(
@@ -82,6 +92,7 @@ inline fun <reified T : Route> ChildNavigation(
 }
 
 inline fun <reified T : Route> NavGraphBuilder.childPageComposable(
+    startDestination: Route,
     noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit
 ) {
     composable<T>(
@@ -90,9 +101,16 @@ inline fun <reified T : Route> NavGraphBuilder.childPageComposable(
                 AnimatedContentTransitionScope.SlideDirection.Left,
                 animationSpec = tween(400)
             )
-        }, exitTransition = {
+        },
+        exitTransition = {
+            val slideDirection =
+                if (this.targetState.destination.route == startDestination::class.qualifiedName) {
+                    AnimatedContentTransitionScope.SlideDirection.Right
+                } else {
+                    AnimatedContentTransitionScope.SlideDirection.Left
+                }
             slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Left,
+                slideDirection,
                 animationSpec = tween(400)
             )
         },

@@ -4,8 +4,4 @@ package com.kinglloy.multiplatform.parcelize
 @Retention(AnnotationRetention.BINARY)
 annotation class Parcelize()
 
-@Target(AnnotationTarget.PROPERTY)
-@Retention(AnnotationRetention.SOURCE)
-annotation class IgnoredOnParcel()
-
 expect interface Parcelable
