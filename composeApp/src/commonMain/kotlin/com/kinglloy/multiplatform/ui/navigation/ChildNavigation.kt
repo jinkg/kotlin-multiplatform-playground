@@ -41,16 +41,6 @@ inline fun <reified T : Route> ChildNavigation(
         },
     ) {
         composable<T>(
-            enterTransition = {
-                if (this.initialState.destination != this.targetState.destination) {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(400)
-                    )
-                } else {
-                    EnterTransition.None
-                }
-            },
             exitTransition = {
                 slideOutOfContainer(
                     AnimatedContentTransitionScope.SlideDirection.Left,
@@ -103,14 +93,8 @@ inline fun <reified T : Route> NavGraphBuilder.childPageComposable(
             )
         },
         exitTransition = {
-            val slideDirection =
-                if (this.targetState.destination.route == startDestination::class.qualifiedName) {
-                    AnimatedContentTransitionScope.SlideDirection.Right
-                } else {
-                    AnimatedContentTransitionScope.SlideDirection.Left
-                }
             slideOutOfContainer(
-                slideDirection,
+                AnimatedContentTransitionScope.SlideDirection.Left,
                 animationSpec = tween(400)
             )
         },

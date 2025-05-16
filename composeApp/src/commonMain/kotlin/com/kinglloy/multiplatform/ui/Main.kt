@@ -1,5 +1,7 @@
 package com.kinglloy.multiplatform.ui
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -10,9 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -79,12 +78,7 @@ fun MainTabsScreen(
         currentRoute = currentRoute,
         onTabSelected = {
             if (currentRoute == it) {
-                currentTabNavController.navigate(initialRouteForTab[currentRoute]!!) {
-                    popUpTo(currentTabNavController.graph.startDestinationId) {
-                        inclusive = true
-                    }
-                    launchSingleTop = true
-                }
+                currentTabNavController.popBackStack(initialRouteForTab[currentRoute]!!, false)
             } else {
                 currentRoute = it
             }
@@ -116,7 +110,19 @@ fun MainNavigation(
 
     NavHost(
         navController = rootNavController,
-        startDestination = Route.Home
+        startDestination = Route.Home,
+        enterTransition = {
+            EnterTransition.None
+        },
+        exitTransition = {
+            ExitTransition.None
+        },
+        popExitTransition = {
+            ExitTransition.None
+        },
+        popEnterTransition = {
+            EnterTransition.None
+        },
     ) {
         composable<Route.Home> {
             MainTabsScreen(
