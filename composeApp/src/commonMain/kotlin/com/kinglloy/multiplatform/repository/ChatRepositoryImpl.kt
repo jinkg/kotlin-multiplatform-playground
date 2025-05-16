@@ -1,13 +1,8 @@
 package com.kinglloy.multiplatform.repository
 
-import com.kinglloy.multiplatform.model.ChatDetail
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import com.kinglloy.multiplatform.data.ChatDao
 
-class ChatRepositoryImpl : ChatRepository {
-    override fun getChats(): Flow<List<ChatDetail>> {
-        return flow {
-            emit(listOf(ChatDetail("1"), ChatDetail("2"), ChatDetail("3")))
-        }
-    }
+class ChatRepositoryImpl(private val chatDao: ChatDao) : ChatRepository {
+    override fun getChats() = chatDao.loadAll()
+    override suspend fun createChat() = chatDao.createChat()
 }

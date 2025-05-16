@@ -19,18 +19,19 @@ fun ChatList(
     onDetailClicked: (postId: String) -> Unit,
     onCameraClicked: () -> Unit,
     modifier: Modifier = Modifier,
-    chatListViewModel: ChatListViewModel = koinViewModel(),
+    viewModel: ChatListViewModel = koinViewModel(),
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        val chatList by chatListViewModel.chatList.collectAsStateWithLifecycle()
+        val chatList by viewModel.chatList.collectAsStateWithLifecycle()
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "ChatList:")
-            chatList.forEach {
-                Text(text = it.id)
+            Button(onClick = { viewModel.addChat() }) {
+                Text(text = "Create Chat")
             }
+            Text(text = "ChatList:")
+            Text(text = chatList.joinToString())
             Text(text = "----------")
             Button(onClick = { onProfileClicked("ChatList - user#1") }) {
                 Text(text = "Open Profile")
