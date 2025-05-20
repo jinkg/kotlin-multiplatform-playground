@@ -1,6 +1,7 @@
 package com.kinglloy.multiplatform.ui.home.profile
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -32,6 +33,7 @@ import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
+import androidx.compose.material3.adaptive.layout.defaultDragHandleSemantics
 import androidx.compose.material3.adaptive.layout.rememberPaneExpansionState
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
@@ -99,7 +101,6 @@ fun Profile(
             navigator.navigateBack()
         }
     }
-    Res.string.settings
     SharedTransitionLayout {
         AnimatedContent(targetState = isListAndDetailVisible, label = "simple sample") {
             ListDetailPaneScaffold(
@@ -151,13 +152,16 @@ fun Profile(
                 paneExpansionState = rememberPaneExpansionState(navigator.scaffoldValue),
                 paneExpansionDragHandle = { state ->
                     val interactionSource = remember { MutableInteractionSource() }
-                    VerticalDragHandle(
-                        modifier = Modifier.paneExpansionDraggable(
-                            state,
-                            LocalMinimumInteractiveComponentSize.current,
-                            interactionSource
-                        ) { }, interactionSource = interactionSource
-                    )
+                    AnimatedVisibility(visible = isListAndDetailVisible) {
+                        VerticalDragHandle(
+                            modifier = Modifier.paneExpansionDraggable(
+                                state,
+                                LocalMinimumInteractiveComponentSize.current,
+                                interactionSource,
+                                state.defaultDragHandleSemantics()
+                            ), interactionSource = interactionSource
+                        )
+                    }
                 }
             )
         }
