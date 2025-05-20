@@ -83,6 +83,9 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.navigation.compose)
             implementation(libs.ui.backhandler)
+            implementation(libs.adaptive)
+            implementation(libs.adaptive.layout)
+            implementation(libs.adaptive.navigation)
 
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
