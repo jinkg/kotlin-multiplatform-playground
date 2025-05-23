@@ -46,8 +46,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.graphics.Color // If not already imported
+// import androidx.compose.ui.unit.dp // Already imported via androidx.compose.ui.unit.dp
 import com.kinglloy.multiplatform.ui.VerticalDragHandle
+import com.kinglloy.multiplatform.ui.components.videoplayer.VideoPlayer
+import com.kinglloy.multiplatform.ui.components.videoplayer.VideoPlayerController
 import kotlin_multiplatform_playground.composeapp.generated.resources.Res
 import kotlin_multiplatform_playground.composeapp.generated.resources.ic_food
 import kotlin_multiplatform_playground.composeapp.generated.resources.ic_no_food
@@ -223,6 +228,21 @@ private fun ListContent(
         item {
             Text(text = "Profile:$userId")
         }
+        // --- Video Player Integration Start ---
+        item { // Place it as a LazyColumn item
+            val videoPlayerController = remember { VideoPlayerController() }
+            val testVideoUrl = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+
+            VideoPlayer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp) // Adjust height as needed
+                    .background(Color.Black), // Background for the player area
+                url = testVideoUrl,
+                controller = videoPlayerController
+            )
+        }
+        // --- Video Player Integration End ---
         item {
             Button(onClick = { onProfileClicked("Profile:$userId - user#1") }) {
                 Text(text = "Open Profile")

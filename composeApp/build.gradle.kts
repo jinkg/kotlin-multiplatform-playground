@@ -69,6 +69,12 @@ kotlin {
             implementation(libs.androidx.activity.compose)
 
             implementation(libs.koin.android)
+
+            implementation(libs.media3.exoplayer)
+            implementation(libs.media3.ui.compose)
+            // Optionally add for specific streaming formats if uncommented in libs.versions.toml:
+            // implementation(libs.media3.exoplayer.dash)
+            // implementation(libs.media3.exoplayer.hls)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -103,6 +109,7 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.vlcj)
         }
     }
 }
