@@ -1,6 +1,7 @@
 package com.kinglloy.multiplatform.ui.components.videoplayer
 
 import android.content.Context
+import android.view.TextureView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -14,11 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.compose.VideoPlayer as Media3VideoPlayer // Alias for clarity
 
 actual class VideoPlayerController {
     internal var exoPlayer: ExoPlayer? = null
@@ -27,9 +28,9 @@ actual class VideoPlayerController {
     private var isInitialized = false
     private var currentUrl: String? = null
     private var applicationContext: Context? = null
-    
+
     // Keep track of playWhenReady state to restore after foregrounding or explicit play call
-    private var playWhenReady = true 
+    private var playWhenReady = true
 
     fun initialize(context: Context) {
         if (isInitialized) return
@@ -92,28 +93,31 @@ actual class VideoPlayerController {
             it.prepare()
         }
     }
-    
+
     internal fun onLifecycleEvent(event: Lifecycle.Event) {
         when (event) {
             Lifecycle.Event.ON_START -> {
                 // Reinitialize or resume player if needed and was playing
                 if (isInitialized && exoPlayer != null && playWhenReady) {
-                    exoPlayer?.playWhenReady = true 
+                    exoPlayer?.playWhenReady = true
                 }
             }
+
             Lifecycle.Event.ON_STOP -> {
                 // Pause player but retain playWhenReady state
                 if (isInitialized && exoPlayer != null) {
                     // playWhenReady is preserved
-                    exoPlayer?.playWhenReady = false 
+                    exoPlayer?.playWhenReady = false
                 }
             }
+
             Lifecycle.Event.ON_DESTROY -> {
                 // This is a final cleanup. If the controller is meant to survive
                 // configuration changes, this needs more careful handling,
                 // possibly by a ViewModel.
                 // release() 
             }
+
             else -> {}
         }
     }
@@ -144,29 +148,31 @@ actual fun VideoPlayer(
             controller.loadUrl(url)
         }
     }
-    
+
     DisposableEffect(lifecycleOwner, controller) {
         val observer = LifecycleEventObserver { _, event ->
             controller.onLifecycleEvent(event)
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             // Decide if controller itself should be released or just the player it holds.
             // If controller is managed by a ViewModel, release might happen there.
             // For now, if the Composable is disposed, we release the controller's player.
             // This assumes the controller is scoped to this Composable instance.
-            controller.release() 
+            controller.release()
             playerInstance = null
         }
     }
 
+
     playerInstance?.let { alivePlayer ->
-        Media3VideoPlayer(
-            player = alivePlayer,
-            modifier = modifier
-        )
+        AndroidView(factory = {
+            TextureView(it).apply {
+                alivePlayer.setVideoTextureView(this)
+            }
+        }, modifier = modifier)
     } ?: run {
         Box(modifier = modifier.background(Color.Black)) // Placeholder
     }

@@ -67,9 +67,9 @@ actual class VideoPlayerController {
     }
 
     private fun loadMedia(url: String) {
-        // mediaPlayer?.media()?.play(url) // For vlcj 4.x
+         mediaPlayer?.media()?.play(url) // For vlcj 4.x
         // For vlcj 4.x, play is on ControlsApi
-        mediaPlayer?.controls()?.play(url)
+//        mediaPlayer?.controls()?.play(url)
     }
 
     // To be called by the Composable to load/change the URL
