@@ -35,14 +35,20 @@ actual class VideoPlayerController {
     private var currentUrl: String? = null
     private var playPending = false
 
-    var isVlcFound by mutableStateOf(true) // Observable state for UI
-        private set
-    var errorMessage by mutableStateOf<String?>(null) // For more detailed errors
-        private set
+    var isReady by mutableStateOf(false) private set
+    var statusMessage by mutableStateOf<String?>("Player not initialized.") private set
 
     fun initialize() {
-        if (mediaPlayerComponent != null) return
-
+        if (isReady) return // Already initialized and ready
+        if (mediaPlayerComponent != null && !isReady) {
+            // This case might indicate a previous failed initialization or release without full cleanup.
+            // Proceeding could lead to resource leaks or unexpected behavior.
+            // For safety, one might want to log this or even throw an error.
+            // For now, we'll let it proceed to re-initialize.
+            println("Warning: Re-initializing controller that has a media player component but is not marked ready.")
+        }
+        
+        statusMessage = "Initializing..."
         try {
             // This can throw VlcNotFoundException or other runtime errors if VLC is not found/configured
             factory = MediaPlayerFactory()
@@ -52,21 +58,17 @@ actual class VideoPlayerController {
             if (mediaPlayer == null) {
                 throw Exception("Failed to get EmbeddedMediaPlayer instance from component.")
             }
-            isVlcFound = true
-            errorMessage = null
-            // currentUrl?.let { if (isVlcFound) loadMedia(it) } // Remove this auto-play line from initialize
-            // The LaunchedEffect for url in the Composable will call controller.loadUrl(url)
-            // and if autoplay is desired, an explicit controller.play() call should be made
-            // which will then be handled by playPending and surfaceBecameDisplayable.
+            isReady = true
+            statusMessage = null // Or "Player Ready"
 
         } catch (e: UnsatisfiedLinkError) {
-            errorMessage = "VLC native libraries not found. Please ensure VLC is installed and in the system path. Error: ${e.message}"
-            println(errorMessage)
-            isVlcFound = false
+            statusMessage = "VLC native libraries not found. Please ensure VLC is installed and in system path. Details: ${e.message}"
+            println(statusMessage)
+            isReady = false
         } catch (e: Exception) { // Catch VlcNotFoundException and other generic exceptions
-            errorMessage = "Error initializing VLCJ: ${e.message}. Please ensure VLC is installed."
-            println(errorMessage)
-            isVlcFound = false
+            statusMessage = "Error initializing VLCJ: ${e.message}. Please ensure VLC is installed."
+            println(statusMessage)
+            isReady = false
         }
     }
 
@@ -90,15 +92,15 @@ actual class VideoPlayerController {
     }
 
     actual fun play() {
-        if (!isVlcFound || mediaPlayer == null) return
+        if (!isReady || mediaPlayer == null) return // Rely on isReady state
         if (currentUrl == null) {
-            errorMessage = "No URL loaded to play."
-            println(errorMessage)
+            statusMessage = "No URL loaded to play."
+            println(statusMessage)
             return
         }
 
         if (mediaPlayerComponent?.isDisplayable == true) {
-            mediaPlayer?.controls()?.play(currentUrl!!)
+            mediaPlayer?.media()?.play(currentUrl!!)
             playPending = false
         } else {
             playPending = true
@@ -106,36 +108,37 @@ actual class VideoPlayerController {
     }
 
     actual fun pause() {
-        if (!isVlcFound || mediaPlayer == null) return
+        if (!isReady || mediaPlayer == null) return
         playPending = false // If user explicitly pauses, don't autoplay on surface ready
         mediaPlayer?.controls()?.pause()
     }
 
     actual fun stop() {
-        if (!isVlcFound || mediaPlayer == null) return
+        if (!isReady || mediaPlayer == null) return
         playPending = false // If user explicitly stops, don't autoplay on surface ready
         mediaPlayer?.controls()?.stop()
     }
 
     actual fun setVolume(volume: Float) {
-        if (!isVlcFound || mediaPlayer == null) return
+        if (!isReady || mediaPlayer == null) return
         val vlcVolume = (volume.coerceIn(0f, 1f) * 100).toInt() // Map 0.0-1.0 to 0-100 for VLC
         mediaPlayer?.audio()?.setVolume(vlcVolume)
     }
 
     fun release() {
-        // mediaPlayer?.release() // This is for MediaPlayer, not EmbeddedMediaPlayer
-        mediaPlayerComponent?.release() // This releases the EmbeddedMediaPlayer and the factory through it if it was the last one.
-        factory?.release() // Explicitly release factory if shared or to be sure
+        mediaPlayerComponent?.release()
+        factory?.release()
         mediaPlayerComponent = null
         mediaPlayer = null
         factory = null
+        isReady = false
+        statusMessage = "Player released."
     }
 
     internal fun surfaceBecameDisplayable() {
         if (playPending && mediaPlayerComponent?.isDisplayable == true) {
             currentUrl?.let { urlToPlay ->
-                mediaPlayer?.controls()?.play(urlToPlay)
+                mediaPlayer?.media()?.play(urlToPlay)
             }
             playPending = false
         }
@@ -177,34 +180,36 @@ actual fun VideoPlayer(
     }
 
     Column(modifier = modifier) { // Outer Column for video and controls
-        if (!controller.isVlcFound) {
+        if (!controller.isReady) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f) // Make error box take available space
+                modifier = Modifier // The main modifier for the VideoPlayer itself
+                    .fillMaxWidth() // Ensure this Box fills the space allocated to VideoPlayer
+                    .weight(1f) // This was in a Column, so weight is appropriate
                     .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = controller.errorMessage ?: "VLC Media Player not found or failed to initialize.",
+                    text = controller.statusMessage ?: "Video player is not ready or has encountered an error.",
                     color = Color.White,
                     modifier = Modifier.padding(16.dp)
                 )
             }
         } else {
+            // This 'else' means controller.isReady is true.
+            // mediaPlayerComponent should be non-null if isReady is true due to initialize logic.
             controller.mediaPlayerComponent?.let { component ->
+                // SwingPanel factory and update lambda for surfaceBecameDisplayable
                 SwingPanel(
-                    factory = { controller.mediaPlayerComponent!! }, // Ensure component is used from controller
+                    factory = { component }, // Use the captured component from let
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f), // Video panel takes most of the space
-                    update = { _ -> // component parameter can be named _ if not used directly
-                        // This is called when the component is ready and on recompositions
+                    update = { comp -> // Can rename to avoid conflict, or use _ if not used
                         controller.surfaceBecameDisplayable()
                     }
                 )
 
-                // Controls Row
+                // Controls Row (Play/Pause buttons)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -219,18 +224,18 @@ actual fun VideoPlayer(
                     Button(onClick = { controller.pause() }) {
                         Text("Pause")
                     }
-                    // TODO: Optionally add a simple volume slider or +/- buttons here
-                    // For setVolume, remember it takes a Float 0.0 to 1.0
                 }
             } ?: run {
+                // This state (isReady == true, but mediaPlayerComponent == null) should ideally not be reached
+                // if the initialize and release logic is correct.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .background(Color.DarkGray),
+                        .background(Color.Red), // Distinct background for unexpected error
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Video player component not available.", color = Color.White)
+                    Text("Error: Player is marked ready but component is unavailable.", color = Color.White)
                 }
             }
         }
