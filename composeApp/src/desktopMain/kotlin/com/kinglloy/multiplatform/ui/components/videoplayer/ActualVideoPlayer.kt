@@ -33,6 +33,7 @@ actual class VideoPlayerController {
 
     private var factory: MediaPlayerFactory? = null
     private var currentUrl: String? = null
+    private var playPending = false
 
     var isVlcFound by mutableStateOf(true) // Observable state for UI
         private set
@@ -44,7 +45,7 @@ actual class VideoPlayerController {
 
         try {
             // This can throw VlcNotFoundException or other runtime errors if VLC is not found/configured
-            factory = MediaPlayerFactory() 
+            factory = MediaPlayerFactory()
             mediaPlayerComponent = EmbeddedMediaPlayerComponent(factory, null, null, null, null)
             mediaPlayer = mediaPlayerComponent?.mediaPlayer() // Get the actual player instance
 
@@ -53,7 +54,10 @@ actual class VideoPlayerController {
             }
             isVlcFound = true
             errorMessage = null
-            currentUrl?.let { if (isVlcFound) loadMedia(it) }
+            // currentUrl?.let { if (isVlcFound) loadMedia(it) } // Remove this auto-play line from initialize
+            // The LaunchedEffect for url in the Composable will call controller.loadUrl(url)
+            // and if autoplay is desired, an explicit controller.play() call should be made
+            // which will then be handled by playPending and surfaceBecameDisplayable.
 
         } catch (e: UnsatisfiedLinkError) {
             errorMessage = "VLC native libraries not found. Please ensure VLC is installed and in the system path. Error: ${e.message}"
@@ -66,32 +70,50 @@ actual class VideoPlayerController {
         }
     }
 
-    private fun loadMedia(url: String) {
-         mediaPlayer?.media()?.play(url) // For vlcj 4.x
-        // For vlcj 4.x, play is on ControlsApi
-//        mediaPlayer?.controls()?.play(url)
-    }
+    // internal fun loadMedia(url: String) { // This was the old function that played
+    //    mediaPlayer?.controls()?.play(url)
+    // }
 
     // To be called by the Composable to load/change the URL
-    internal fun loadUrl(url: String) {
+    internal fun loadUrl(url: String) { // Renamed from previous internal loadUrl
         currentUrl = url
-        if (mediaPlayer != null && isVlcFound) {
-            loadMedia(url)
+        // If mediaPlayer is ready, one might prepare the media here,
+        // but vlcj's play(mrl) usually handles it.
+        // If play is pending, and surface is ready, this new URL should be picked up.
+        if (playPending && mediaPlayerComponent?.isDisplayable == true) {
+            currentUrl?.let { mediaPlayer?.controls()?.play(it) } // Play new URL if pending
+            // playPending remains false if it was already false.
+            // If playPending was true, it means play() was called before surface was ready.
+            // We can set it to false here as play is now initiated.
+            // playPending = false // Let surfaceBecameDisplayable or play() manage this.
         }
     }
 
     actual fun play() {
         if (!isVlcFound || mediaPlayer == null) return
-        mediaPlayer?.controls()?.play()
+        if (currentUrl == null) {
+            errorMessage = "No URL loaded to play."
+            println(errorMessage)
+            return
+        }
+
+        if (mediaPlayerComponent?.isDisplayable == true) {
+            mediaPlayer?.controls()?.play(currentUrl!!)
+            playPending = false
+        } else {
+            playPending = true
+        }
     }
 
     actual fun pause() {
         if (!isVlcFound || mediaPlayer == null) return
+        playPending = false // If user explicitly pauses, don't autoplay on surface ready
         mediaPlayer?.controls()?.pause()
     }
 
     actual fun stop() {
         if (!isVlcFound || mediaPlayer == null) return
+        playPending = false // If user explicitly stops, don't autoplay on surface ready
         mediaPlayer?.controls()?.stop()
     }
 
@@ -109,6 +131,15 @@ actual class VideoPlayerController {
         mediaPlayer = null
         factory = null
     }
+
+    internal fun surfaceBecameDisplayable() {
+        if (playPending && mediaPlayerComponent?.isDisplayable == true) {
+            currentUrl?.let { urlToPlay ->
+                mediaPlayer?.controls()?.play(urlToPlay)
+            }
+            playPending = false
+        }
+    }
 }
 
 @Composable
@@ -124,6 +155,7 @@ actual fun VideoPlayer(
     LaunchedEffect(url, controller.isVlcFound) {
         if (controller.isVlcFound) {
             controller.loadUrl(url)
+            controller.play() // Request play, it will be handled by playPending if surface not ready
         }
     }
 
@@ -162,10 +194,14 @@ actual fun VideoPlayer(
         } else {
             controller.mediaPlayerComponent?.let { component ->
                 SwingPanel(
-                    factory = { component },
+                    factory = { controller.mediaPlayerComponent!! }, // Ensure component is used from controller
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f) // Video panel takes most of the space
+                        .weight(1f), // Video panel takes most of the space
+                    update = { _ -> // component parameter can be named _ if not used directly
+                        // This is called when the component is ready and on recompositions
+                        controller.surfaceBecameDisplayable()
+                    }
                 )
 
                 // Controls Row

@@ -49,7 +49,7 @@ import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.graphics.Color // If not already imported
-import androidx.compose.ui.unit.dp
+// import androidx.compose.ui.unit.dp // Already imported via androidx.compose.ui.unit.dp
 import com.kinglloy.multiplatform.ui.VerticalDragHandle
 import com.kinglloy.multiplatform.ui.components.videoplayer.VideoPlayer
 import com.kinglloy.multiplatform.ui.components.videoplayer.VideoPlayerController
@@ -231,7 +231,7 @@ private fun ListContent(
         // --- Video Player Integration Start ---
         item { // Place it as a LazyColumn item
             val videoPlayerController = remember { VideoPlayerController() }
-            val testVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+            val testVideoUrl = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 
             VideoPlayer(
                 modifier = Modifier
