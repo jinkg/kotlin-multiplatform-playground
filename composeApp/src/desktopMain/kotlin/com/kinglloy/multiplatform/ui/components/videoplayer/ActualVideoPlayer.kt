@@ -35,8 +35,8 @@ actual class VideoPlayerController {
     private var currentUrl: String? = null
     private var playPending = false
 
-    var isReady by mutableStateOf(false) private set
-    var statusMessage by mutableStateOf<String?>("Player not initialized.") private set
+    var isReady by mutableStateOf(false)
+    var statusMessage by mutableStateOf<String?>("Player not initialized.")
 
     fun initialize() {
         if (isReady) return // Already initialized and ready
@@ -47,7 +47,7 @@ actual class VideoPlayerController {
             // For now, we'll let it proceed to re-initialize.
             println("Warning: Re-initializing controller that has a media player component but is not marked ready.")
         }
-        
+
         statusMessage = "Initializing..."
         try {
             // This can throw VlcNotFoundException or other runtime errors if VLC is not found/configured
@@ -83,7 +83,7 @@ actual class VideoPlayerController {
         // but vlcj's play(mrl) usually handles it.
         // If play is pending, and surface is ready, this new URL should be picked up.
         if (playPending && mediaPlayerComponent?.isDisplayable == true) {
-            currentUrl?.let { mediaPlayer?.controls()?.play(it) } // Play new URL if pending
+            currentUrl?.let { mediaPlayer?.media()?.play(it) } // Play new URL if pending
             // playPending remains false if it was already false.
             // If playPending was true, it means play() was called before surface was ready.
             // We can set it to false here as play is now initiated.
@@ -155,8 +155,8 @@ actual fun VideoPlayer(
         controller.initialize()
     }
 
-    LaunchedEffect(url, controller.isVlcFound) {
-        if (controller.isVlcFound) {
+    LaunchedEffect(url, controller.isReady) {
+        if (controller.isReady) {
             controller.loadUrl(url)
             controller.play() // Request play, it will be handled by playPending if surface not ready
         }
@@ -168,10 +168,10 @@ actual fun VideoPlayer(
         }
     }
 
-    if (!controller.isVlcFound) {
+    if (!controller.isReady) {
         Box(modifier = modifier.background(Color.Black), contentAlignment = Alignment.Center) {
             Text(
-                text = controller.errorMessage ?: "VLC Media Player not found or failed to initialize.",
+                text = controller.statusMessage ?: "VLC Media Player not found or failed to initialize.",
                 color = Color.White,
                 modifier = Modifier.padding(16.dp) // Add some padding
             )

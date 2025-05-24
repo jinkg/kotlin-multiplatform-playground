@@ -18,7 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.compose.VideoPlayer as Media3VideoPlayer // Alias for clarity
+import androidx.media3.ui.compose.PlayerSurface
 
 actual class VideoPlayerController {
     internal var exoPlayer: ExoPlayer? = null
@@ -163,7 +163,7 @@ actual fun VideoPlayer(
     }
 
     playerInstance?.let { alivePlayer ->
-        Media3VideoPlayer(
+        PlayerSurface(
             player = alivePlayer,
             modifier = modifier
         )
